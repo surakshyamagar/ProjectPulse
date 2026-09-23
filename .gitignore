@@ -1,0 +1,13 @@
+# Node
+node_modules/
+dist/
+.env
+.env.*
+
+# Python
+ML-backend/venv/
+ML-backend/__pycache__/
+ML-backend/**/*.pyc
+
+# ML generated files
+ML-backend/data/models/

@@ -1,0 +1,3 @@
+server.js → starts the backend server.
+app.js → creates and configures the Express application.
+
