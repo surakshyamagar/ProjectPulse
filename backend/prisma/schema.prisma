@@ -1,0 +1,187 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// npx prisma format
+// npx prisma validate
+// npx prisma migrate dev --name add_milestones
+// npx prisma generate
+
+// user -> project(what to build) -> requirement(what software needs to do, eg; user should be able to login),
+// -> Milestone(big developement stage, eg: Authentication, Main pages)
+// -> Task -> (small divided work, eg: create login page) -> Issue(problems/blockers discovered during development eg: image not loading) 
+// ->  ApiTest(stores the results of API testing. eg: POST /api/auth/login adn other) 
+// -> TechnicalReviewItem(like: implemented, missing)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One user can have many projects
+  projects Project[]
+}
+
+model Project {
+  id          Int           @id @default(autoincrement())
+  userId      Int
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  startDate   DateTime?
+  deadline    DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requirements Requirement[]
+  milestones   Milestone[]
+  issues       Issue[]
+  apiTests     ApiTest[]
+  practices    ProjectPractice[]
+
+  @@index([userId])
+}
+
+model Requirement {
+  id          Int               @id @default(autoincrement())
+  projectId   Int
+  title       String
+  description String?
+  status      RequirementStatus @default(TODO)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+}
+
+enum RequirementStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Milestone {
+  id          Int      @id @default(autoincrement())
+  projectId   Int
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@index([projectId])
+}
+
+model Task {
+  id          Int          @id @default(autoincrement())
+  milestoneId Int
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  milestone Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Issue {
+  id          Int           @id @default(autoincrement())
+  projectId   Int
+  title       String
+  description String?
+  status      IssueStatus   @default(OPEN)
+  priority    IssuePriority @default(MEDIUM)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum IssuePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model ApiTest {
+  id           Int      @id @default(autoincrement())
+  projectId    Int
+  endpoint     String
+  method       String
+  statusCode   Int
+  passed       Boolean
+  responseTime Int
+  testedAt     DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+// technical review
+model ProjectPractice {
+  id          Int      @id @default(autoincrement())
+  projectId   Int
+
+  //checklist
+  key         String
+  implemented Boolean  @default(false)
+  notes       String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, key])
+  @@index([projectId])
+}
